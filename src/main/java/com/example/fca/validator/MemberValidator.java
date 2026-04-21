@@ -27,9 +27,11 @@ public class MemberValidator {
                 throw new IllegalArgumentException("Le parrain " + ref.getId() + " n'est pas un membre confirmé");
         }
         String targetCollectivity = dto.getCollectivityIdentifier();
-        long inside = referees.stream().filter(r -> targetCollectivity.equals(r.getCollectivityId())).count();
-        long outside = referees.size() - inside;
-        if (inside < outside)
-            throw new IllegalArgumentException("Règle des parrains non respectée : il faut au moins autant de parrains internes qu'externes");
+        if (targetCollectivity != null && !targetCollectivity.isBlank()) {
+            long inside = referees.stream().filter(r -> targetCollectivity.equals(r.getCollectivityId())).count();
+            long outside = referees.size() - inside;
+            if (inside < outside)
+                throw new IllegalArgumentException("Règle des parrains non respectée : il faut au moins autant de parrains internes qu'externes");
+        }
     }
 }

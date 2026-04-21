@@ -43,7 +43,7 @@ public class MemberRepository {
     }
 
     public Member save(Member m) throws SQLException {
-        String sql = "INSERT INTO member (id, first_name, last_name, birth_date, gender, address, profession, phone_number, email, occupation, collectivity_id, active, membership_date) VALUES (?, ?, ?, ?, ?::gender, ?, ?, ?, ?, ?::occupation, ?, ?, ?)";
+        String sql = "INSERT INTO member (id, first_name, last_name, birth_date, gender, address, profession, phone_number, email, occupation, collectivity_id, active, membership_date) VALUES (?, ?, ?, ?, ?::gender_enum, ?, ?, ?, ?, ?::member_occupation_enum, ?, ?, ?)";
         try (Connection conn = datasource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             String id = UUID.randomUUID().toString();
