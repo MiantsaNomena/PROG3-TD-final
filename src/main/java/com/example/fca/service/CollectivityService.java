@@ -61,4 +61,9 @@ public class CollectivityService {
         }
         return responses;
     }
+    public Collectivity assignIdentifiers(String collectivityId, String uniqueNumber, String uniqueName) throws Exception {
+        collectivityRepository.assignIdentifiers(collectivityId, uniqueNumber, uniqueName);
+        return collectivityRepository.findById(collectivityId)
+                .orElseThrow(() -> new RuntimeException("Collectivity not found after update"));
+    }
 }

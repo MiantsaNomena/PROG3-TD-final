@@ -17,4 +17,7 @@ public class Collectivity {
     private Member secretary;
     private LocalDate creationDate;
     private boolean federationApproval;
+
+    private String uniqueNumber;
+    private String uniqueName;
 }
