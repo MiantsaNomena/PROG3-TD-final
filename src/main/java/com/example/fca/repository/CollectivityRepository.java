@@ -23,7 +23,6 @@ public class CollectivityRepository {
             conn.setAutoCommit(false);
 
             String id = UUID.randomUUID().toString();
-            // 1. Insert collectivity
             String sqlColl = "INSERT INTO collectivity (id, location, creation_date, federation_approval) VALUES (?, ?, ?, ?)";
             try (PreparedStatement stmt = conn.prepareStatement(sqlColl)) {
                 stmt.setString(1, id);
@@ -34,7 +33,6 @@ public class CollectivityRepository {
             }
             c.setId(id);
 
-            // 2. Update members with collectivity_id
             String sqlUpd = "UPDATE member SET collectivity_id = ? WHERE id = ?";
             try (PreparedStatement stmt = conn.prepareStatement(sqlUpd)) {
                 for (Member m : c.getMembers()) {
@@ -45,7 +43,6 @@ public class CollectivityRepository {
                 stmt.executeBatch();
             }
 
-            // 3. Insert structure (roles)
             String sqlStruct = "INSERT INTO collectivity_structure (collectivity_id, role, member_id) VALUES (?, ?, ?)";
             try (PreparedStatement stmt = conn.prepareStatement(sqlStruct)) {
                 stmt.setString(1, id);

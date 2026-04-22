@@ -18,8 +18,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-        logger.error("Erreur interne : ", ex);
+        logger.error("Internal error : ", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse(500, "Erreur interne: " + ex.getMessage()));
+                .body(new ErrorResponse(500, "Internal error: " + ex.getMessage()));
     }
 }

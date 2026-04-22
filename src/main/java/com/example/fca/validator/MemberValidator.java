@@ -16,22 +16,22 @@ public class MemberValidator {
 
     public void validate(CreateMember dto) throws SQLException {
         if (!dto.isRegistrationFeePaid() || !dto.isMembershipDuesPaid())
-            throw new IllegalArgumentException("Frais d'adhésion (50k) et cotisations annuelles doivent être payés");
+            throw new IllegalArgumentException("Membership fee (50k) and annual dues must be paid");
         if (dto.getReferees() == null || dto.getReferees().size() < 2)
-            throw new IllegalArgumentException("Au moins deux parrains requis");
+            throw new IllegalArgumentException("At least two sponsors are required");
         List<Member> referees = memberRepository.findByIds(dto.getReferees());
         if (referees.size() != dto.getReferees().size())
-            throw new IllegalArgumentException("Un ou plusieurs parrains n'existent pas");
+            throw new IllegalArgumentException("One or more sponsors do not exist");
         for (Member ref : referees) {
             if (ref.getOccupation() != MemberOccupation.SENIOR)
-                throw new IllegalArgumentException("Le parrain " + ref.getId() + " n'est pas un membre confirmé");
+                throw new IllegalArgumentException("Sponsor " + ref.getId() + " is not a confirmed member");
         }
         String targetCollectivity = dto.getCollectivityIdentifier();
         if (targetCollectivity != null && !targetCollectivity.isBlank()) {
             long inside = referees.stream().filter(r -> targetCollectivity.equals(r.getCollectivityId())).count();
             long outside = referees.size() - inside;
             if (inside < outside)
-                throw new IllegalArgumentException("Règle des parrains non respectée : il faut au moins autant de parrains internes qu'externes");
+                throw new IllegalArgumentException("Sponsorship rule not respected: at least as many internal sponsors as external ones are required");
         }
     }
 }

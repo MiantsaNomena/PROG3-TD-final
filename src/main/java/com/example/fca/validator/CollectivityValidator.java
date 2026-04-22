@@ -19,27 +19,27 @@ public class CollectivityValidator {
 
     public void validate(CreateCollectivity dto) throws SQLException {
         if (!dto.isFederationApproval())
-            throw new IllegalArgumentException("L'autorisation de la fédération est requise");
+            throw new IllegalArgumentException("Federation authorization is required");
         if (dto.getMembers() == null || dto.getMembers().size() < 10)
-            throw new IllegalArgumentException("Au moins 10 membres requis");
+            throw new IllegalArgumentException("At least 10 members are required");
         List<Member> members = memberRepository.findByIds(dto.getMembers());
         if (members.size() != dto.getMembers().size())
-            throw new IllegalArgumentException("Certains membres n'existent pas");
+            throw new IllegalArgumentException("Some members of the structure do not exist");
         long count = members.stream().filter(m -> ChronoUnit.MONTHS.between(m.getMembershipDate(), LocalDate.now()) >= 6).count();
         if (count < 5)
-            throw new IllegalArgumentException("Au moins 5 membres doivent avoir une ancienneté ≥ 6 mois");
+            throw new IllegalArgumentException("At least 5 members must have a seniority ≥ 6 months");
         CreateCollectivityStructure struct = dto.getStructure();
-        if (struct == null) throw new IllegalArgumentException("Structure requise");
+        if (struct == null) throw new IllegalArgumentException("Structure is required");
         List<String> roleIds = List.of(struct.getPresident(), struct.getVicePresident(), struct.getTreasurer(), struct.getSecretary());
         if (roleIds.stream().anyMatch(id -> id == null || id.isBlank()))
-            throw new IllegalArgumentException("Tous les postes spécifiques doivent être pourvus");
+            throw new IllegalArgumentException("All specific positions must be filled");
         List<Member> roleMembers = memberRepository.findByIds(roleIds);
         if (roleMembers.size() != roleIds.size())
-            throw new IllegalArgumentException("Certains membres de la structure n'existent pas");
+            throw new IllegalArgumentException("Some members of the structure do not exist");
         List<String> memberIds = dto.getMembers();
         for (String roleId : roleIds) {
             if (!memberIds.contains(roleId))
-                throw new IllegalArgumentException("Le membre " + roleId + " n'est pas dans la liste des membres fondateurs");
+                throw new IllegalArgumentException("Member " + roleId + " is not in the list of founding members");
         }
     }
 }
