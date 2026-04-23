@@ -7,6 +7,9 @@ import com.example.fca.entity.enums.MobileBankingService;
 import org.springframework.stereotype.Repository;
 
 import java.sql.*;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -89,12 +92,12 @@ public class FinancialAccountRepository {
         }
     }
 
-    public void updateBalance(String accountId, double newBalance) throws SQLException {
+    public void updateBalance(String id, double newBalance) throws SQLException {
         String sql = "UPDATE financial_account SET balance = ? WHERE id = ?";
         try (Connection conn = datasource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setDouble(1, newBalance);
-            stmt.setString(2, accountId);
+            stmt.setString(2, id);
             stmt.executeUpdate();
         }
     }
@@ -133,5 +136,31 @@ public class FinancialAccountRepository {
         account.setCollectivityId(rs.getString("collectivity_id"));
         account.setBalance(rs.getDouble("balance"));
         return account;
+    }
+    public List<FinancialAccount> findByCollectivityIdWithBalanceAt(String collectivityId, LocalDate at) throws SQLException {
+        String sqlAccounts = "SELECT * FROM financial_account WHERE collectivity_id = ?";
+        List<FinancialAccount> accounts = new ArrayList<>();
+        try (Connection conn = datasource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sqlAccounts)) {
+            stmt.setString(1, collectivityId);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                accounts.add(map(rs));
+            }
+        }
+
+        String sqlBalance = "SELECT COALESCE(SUM(amount), 0) FROM transaction WHERE account_credited_id = ? AND creation_date <= ?";
+        try (Connection conn = datasource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sqlBalance)) {
+            for (FinancialAccount acc : accounts) {
+                stmt.setString(1, acc.getId());
+                stmt.setDate(2, Date.valueOf(at));
+                ResultSet rs = stmt.executeQuery();
+                if (rs.next()) {
+                    acc.setBalance(rs.getDouble(1));
+                }
+            }
+        }
+        return accounts;
     }
 }

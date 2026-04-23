@@ -1,14 +1,18 @@
 package com.example.fca.service;
 
+import com.example.fca.entity.dto.CollectivityInformation;
+import com.example.fca.entity.dto.CreateCollectivity;
 import com.example.fca.entity.Collectivity;
 import com.example.fca.entity.Member;
-import com.example.fca.entity.dto.*;
 import com.example.fca.repository.CollectivityRepository;
 import com.example.fca.repository.MemberRepository;
 import com.example.fca.validator.CollectivityValidator;
 import org.springframework.stereotype.Service;
+
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class CollectivityService {
@@ -16,54 +20,40 @@ public class CollectivityService {
     private final MemberRepository memberRepository;
     private final CollectivityValidator validator;
 
-    public CollectivityService(CollectivityRepository collectivityRepository,
-                               MemberRepository memberRepository,
-                               CollectivityValidator validator) {
-        this.collectivityRepository = collectivityRepository;
-        this.memberRepository = memberRepository;
-        this.validator = validator;
+    public CollectivityService(CollectivityRepository cr, MemberRepository mr, CollectivityValidator v) {
+        this.collectivityRepository = cr;
+        this.memberRepository = mr;
+        this.validator = v;
     }
 
-    public List<CollectivityResponse> createCollectivities(List<CreateCollectivity> dtos) throws Exception {
-        List<CollectivityResponse> responses = new java.util.ArrayList<>();
+    public List<Collectivity> createCollectivities(List<CreateCollectivity> dtos) throws Exception {
+        List<Collectivity> results = new java.util.ArrayList<>();
         for (CreateCollectivity dto : dtos) {
             validator.validate(dto);
             List<Member> members = memberRepository.findByIds(dto.getMembers());
-            CreateCollectivityStructure structDto = dto.getStructure();
-            Member president = memberRepository.findById(structDto.getPresident()).orElseThrow();
-            Member vicePresident = memberRepository.findById(structDto.getVicePresident()).orElseThrow();
-            Member treasurer = memberRepository.findById(structDto.getTreasurer()).orElseThrow();
-            Member secretary = memberRepository.findById(structDto.getSecretary()).orElseThrow();
-
-            Collectivity collectivity = new Collectivity();
-            collectivity.setLocation(dto.getLocation());
-            collectivity.setMembers(members);
-            collectivity.setPresident(president);
-            collectivity.setVicePresident(vicePresident);
-            collectivity.setTreasurer(treasurer);
-            collectivity.setSecretary(secretary);
-            collectivity.setCreationDate(LocalDate.now());
-            collectivity.setFederationApproval(dto.isFederationApproval());
-
-            collectivity = collectivityRepository.save(collectivity);
-
-            CollectivityResponse resp = new CollectivityResponse();
-            resp.setId(collectivity.getId());
-            resp.setLocation(collectivity.getLocation());
-            CollectivityStructure structResp = new CollectivityStructure();
-            structResp.setPresident(president);
-            structResp.setVicePresident(vicePresident);
-            structResp.setTreasurer(treasurer);
-            structResp.setSecretary(secretary);
-            resp.setStructure(structResp);
-            resp.setMembers(members);
-            responses.add(resp);
+            Member president = memberRepository.findById(dto.getStructure().getPresident()).orElseThrow();
+            Member vice = memberRepository.findById(dto.getStructure().getVicePresident()).orElseThrow();
+            Member treasurer = memberRepository.findById(dto.getStructure().getTreasurer()).orElseThrow();
+            Member secretary = memberRepository.findById(dto.getStructure().getSecretary()).orElseThrow();
+            Collectivity c = new Collectivity();
+            c.setLocation(dto.getLocation());
+            c.setMembers(members);
+            c.setPresident(president);
+            c.setVicePresident(vice);
+            c.setTreasurer(treasurer);
+            c.setSecretary(secretary);
+            c.setCreationDate(LocalDate.now());
+            c.setFederationApproval(dto.isFederationApproval());
+            results.add(collectivityRepository.save(c));
         }
-        return responses;
+        return results;
     }
-    public Collectivity assignIdentifiers(String collectivityId, String uniqueNumber, String uniqueName) throws Exception {
-        collectivityRepository.assignIdentifiers(collectivityId, uniqueNumber, uniqueName);
-        return collectivityRepository.findById(collectivityId)
-                .orElseThrow(() -> new RuntimeException("Collectivity not found after update"));
+
+    public Collectivity assignInformations(String id, CollectivityInformation info) throws Exception {
+        collectivityRepository.assignUniqueIdentifiers(id, info.getName(), String.valueOf(info.getNumber()));
+        return collectivityRepository.findById(id).orElseThrow();
+    }
+    public Optional<Collectivity> getCollectivityById(String id) throws SQLException {
+        return collectivityRepository.findById(id);
     }
 }

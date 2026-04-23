@@ -42,3 +42,11 @@ CREATE TABLE member_payment (
                                 account_credited_id VARCHAR(36) REFERENCES financial_account(id),
                                 creation_date DATE NOT NULL
 );
+
+
+CREATE TYPE frequency AS ENUM ('WEEKLY', 'MONTHLY', 'ANNUALLY', 'PUNCTUALLY');
+CREATE TYPE activity_status AS ENUM ('ACTIVE', 'INACTIVE');
+CREATE TYPE payment_mode AS ENUM ('CASH', 'MOBILE_BANKING', 'BANK_TRANSFER');
+
+CREATE TYPE mobile_banking_service AS ENUM ('AIRTEL_MONEY', 'MVOLA', 'ORANGE_MONEY');
+CREATE TYPE bank_name AS ENUM ('BRED', 'MCB', 'BMOI', 'BOA', 'BGFI', 'AFG', 'ACCES_BAQUE', 'BAOBAB', 'SIPEM');

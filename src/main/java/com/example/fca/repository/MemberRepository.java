@@ -85,7 +85,7 @@ public class MemberRepository {
     }
     public List<Member> findByCollectivityId(String collectivityId, Boolean actif) throws SQLException {
         String sql = "SELECT * FROM member WHERE collectivity_id = ?";
-        if (actif != null) sql += " AND actif = ?";
+        if (actif != null) sql += " AND active = ?";
         try (Connection conn = datasource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, collectivityId);

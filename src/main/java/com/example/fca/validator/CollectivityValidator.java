@@ -1,5 +1,4 @@
 package com.example.fca.validator;
-// validator/CollectivityValidator.java
 
 import com.example.fca.entity.Member;
 import com.example.fca.entity.dto.CreateCollectivity;

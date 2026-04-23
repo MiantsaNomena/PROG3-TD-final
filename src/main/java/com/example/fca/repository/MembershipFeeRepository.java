@@ -28,8 +28,7 @@ public class MembershipFeeRepository {
     }
 
     public List<MembershipFee> saveAll(String collectivityId, List<MembershipFee> fees) throws SQLException {
-        String sql = "INSERT INTO membership_fee (id, collectivity_id, eligible_from, frequency, amount, label, status) VALUES (?, ?, ?, ?::frequency, ?, ?, ?::status)";
-        try (Connection conn = datasource.getConnection();
+        String sql = "INSERT INTO membership_fee (id, collectivity_id, eligible_from, frequency, amount, label, status) VALUES (?, ?, ?, ?, ?, ?, ?)";        try (Connection conn = datasource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             List<MembershipFee> saved = new ArrayList<>();
             for (MembershipFee fee : fees) {
@@ -60,5 +59,15 @@ public class MembershipFeeRepository {
         mf.setLabel(rs.getString("label"));
         mf.setStatus(ActivityStatus.valueOf(rs.getString("status")));
         return mf;
+    }
+    public Optional<MembershipFee> findById(String id) throws SQLException {
+        String sql = "SELECT * FROM membership_fee WHERE id = ?";
+        try (Connection conn = datasource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, id);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) return Optional.of(map(rs));
+            return Optional.empty();
+        }
     }
 }
