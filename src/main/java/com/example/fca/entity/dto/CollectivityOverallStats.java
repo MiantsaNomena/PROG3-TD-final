@@ -9,6 +9,5 @@ public class CollectivityOverallStats {
     private String collectivityNumber;
     private Integer newMembersNumber;
     private Double overallMemberCurrentDuePercentage;
+    private Double overallMemberAssiduityPercentage;
 }
-
-
