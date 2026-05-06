@@ -57,7 +57,6 @@ public class AttendanceRepository {
     }
 
     public boolean updateStatus(String activityId, String memberId, String newStatus) throws SQLException {
-        // Vérifier si le statut actuel n'est pas déjà ATTENDED ou MISSING (non modifiable)
         String checkSql = "SELECT status FROM attendance WHERE activity_id = ? AND member_id = ?";
         try (Connection conn = datasource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(checkSql)) {
