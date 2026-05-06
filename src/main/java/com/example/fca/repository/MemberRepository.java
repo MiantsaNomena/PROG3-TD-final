@@ -2,7 +2,7 @@ package com.example.fca.repository;
 
 import com.example.fca.config.Datasource;
 import com.example.fca.entity.Member;
-import com.example.fca.entity.dto.MemberStatistics;
+import com.example.fca.entity.dto.CollectivityOverallStats;
 import com.example.fca.entity.enums.Gender;
 import com.example.fca.entity.enums.MemberOccupation;
 import org.springframework.stereotype.Repository;
@@ -99,48 +99,79 @@ public class MemberRepository {
         }
     }
 
-    public List<MemberStatistics> getMemberStatistics(String collectivityId, LocalDate from, LocalDate to) throws SQLException {
+    public List<CollectivityOverallStats> getOverallStatistics(LocalDate from, LocalDate to) throws SQLException {
         String sql = """
+        WITH active_members AS (
+            SELECT id, collectivity_id FROM member WHERE active = true
+        ),
+        member_payments AS (
+            SELECT member_id, SUM(amount) as paid
+            FROM member_payment
+            WHERE creation_date BETWEEN ? AND ?
+            GROUP BY member_id
+        ),
+        collectivity_total_due AS (
+            SELECT collectivity_id, SUM(amount) as total_due
+            FROM membership_fee
+            WHERE status = 'ACTIVE' AND eligible_from <= ?
+            GROUP BY collectivity_id
+        ),
+        new_members AS (
+            SELECT collectivity_id, COUNT(*) as nb_new
+            FROM member
+            WHERE membership_date BETWEEN ? AND ? AND active = true
+            GROUP BY collectivity_id
+        ),
+        member_status AS (
+            SELECT 
+                am.collectivity_id,
+                COALESCE(mp.paid, 0) as paid,
+                COALESCE(ctd.total_due, 0) as due
+            FROM active_members am
+            LEFT JOIN member_payments mp ON mp.member_id = am.id
+            LEFT JOIN collectivity_total_due ctd ON ctd.collectivity_id = am.collectivity_id
+        ),
+        collectivity_stats AS (
+            SELECT 
+                collectivity_id,
+                COUNT(*) as total_members,
+                SUM(CASE WHEN paid >= due THEN 1 ELSE 0 END) as up_to_date
+            FROM member_status
+            GROUP BY collectivity_id
+        )
         SELECT 
-            m.id,
-            m.first_name,
-            m.last_name,
-            m.email,
-            m.occupation,
-            COALESCE(SUM(mp.amount), 0) as earned_amount,
-            (SELECT COALESCE(SUM(mf.amount), 0)
-             FROM membership_fee mf
-             WHERE mf.collectivity_id = ? AND mf.status = 'ACTIVE' AND mf.eligible_from <= ?) as total_due
-        FROM member m
-        LEFT JOIN member_payment mp ON mp.member_id = m.id AND mp.creation_date BETWEEN ? AND ?
-        WHERE m.collectivity_id = ? AND m.active = true
-        GROUP BY m.id
+            c.id,
+            c.unique_name,
+            c.unique_number,
+            COALESCE(nm.nb_new, 0) as new_members,
+            CASE WHEN cs.total_members = 0 THEN 0 
+                 ELSE 100.0 * cs.up_to_date / cs.total_members 
+            END as percentage_up_to_date
+        FROM collectivity c
+        LEFT JOIN collectivity_stats cs ON cs.collectivity_id = c.id
+        LEFT JOIN new_members nm ON nm.collectivity_id = c.id
         """;
         try (Connection conn = datasource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, collectivityId);
+            stmt.setDate(1, Date.valueOf(from));
             stmt.setDate(2, Date.valueOf(to));
-            stmt.setDate(3, Date.valueOf(from));
-            stmt.setDate(4, Date.valueOf(to));
-            stmt.setString(5, collectivityId);
+            stmt.setDate(3, Date.valueOf(to));
+            stmt.setDate(4, Date.valueOf(from));
+            stmt.setDate(5, Date.valueOf(to));
             ResultSet rs = stmt.executeQuery();
-            List<MemberStatistics> list = new ArrayList<>();
+            List<CollectivityOverallStats> list = new ArrayList<>();
             while (rs.next()) {
-                MemberStatistics ms = new MemberStatistics();
-                ms.setMemberId(rs.getString("id"));
-                ms.setFirstName(rs.getString("first_name"));
-                ms.setLastName(rs.getString("last_name"));
-                ms.setEmail(rs.getString("email"));
-                ms.setOccupation(rs.getString("occupation"));
-                ms.setEarnedAmount(rs.getDouble("earned_amount"));
-                double totalDue = rs.getDouble("total_due");
-                ms.setUnpaidAmount(Math.max(0, totalDue - ms.getEarnedAmount()));
-                list.add(ms);
+                CollectivityOverallStats stat = new CollectivityOverallStats();
+                stat.setCollectivityId(rs.getString("id"));
+                stat.setCollectivityName(rs.getString("unique_name"));
+                stat.setCollectivityNumber(rs.getString("unique_number"));
+                stat.setNewMembersNumber(rs.getInt("new_members"));
+                stat.setOverallMemberCurrentDuePercentage(rs.getDouble("percentage_up_to_date"));
+                list.add(stat);
             }
             return list;
         }
     }
-
 
 
 }
