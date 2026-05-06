@@ -215,6 +215,4 @@ public class MemberRepository {
             return list;
         }
     }
-
-
 }
