@@ -3,6 +3,7 @@ package com.example.fca.repository;
 import com.example.fca.config.Datasource;
 import com.example.fca.entity.Member;
 import com.example.fca.entity.dto.CollectivityOverallStats;
+import com.example.fca.entity.dto.MemberStatistics;
 import com.example.fca.entity.enums.Gender;
 import com.example.fca.entity.enums.MemberOccupation;
 import org.springframework.stereotype.Repository;
@@ -95,6 +96,48 @@ public class MemberRepository {
             ResultSet rs = stmt.executeQuery();
             List<Member> list = new ArrayList<>();
             while (rs.next()) list.add(map(rs));
+            return list;
+        }
+    }
+
+    public List<MemberStatistics> getMemberStatistics(String collectivityId, LocalDate from, LocalDate to) throws SQLException {
+        String sql = """
+        SELECT 
+            m.id,
+            m.first_name,
+            m.last_name,
+            m.email,
+            m.occupation,
+            COALESCE(SUM(mp.amount), 0) as earned_amount,
+            (SELECT COALESCE(SUM(mf.amount), 0)
+             FROM membership_fee mf
+             WHERE mf.collectivity_id = ? AND mf.status = 'ACTIVE' AND mf.eligible_from <= ?) as total_due
+        FROM member m
+        LEFT JOIN member_payment mp ON mp.member_id = m.id AND mp.creation_date BETWEEN ? AND ?
+        WHERE m.collectivity_id = ? AND m.active = true
+        GROUP BY m.id
+        """;
+        try (Connection conn = datasource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, collectivityId);
+            stmt.setDate(2, Date.valueOf(to));
+            stmt.setDate(3, Date.valueOf(from));
+            stmt.setDate(4, Date.valueOf(to));
+            stmt.setString(5, collectivityId);
+            ResultSet rs = stmt.executeQuery();
+            List<MemberStatistics> list = new ArrayList<>();
+            while (rs.next()) {
+                MemberStatistics ms = new MemberStatistics();
+                ms.setMemberId(rs.getString("id"));
+                ms.setFirstName(rs.getString("first_name"));
+                ms.setLastName(rs.getString("last_name"));
+                ms.setEmail(rs.getString("email"));
+                ms.setOccupation(rs.getString("occupation"));
+                ms.setEarnedAmount(rs.getDouble("earned_amount"));
+                double totalDue = rs.getDouble("total_due");
+                ms.setUnpaidAmount(Math.max(0, totalDue - ms.getEarnedAmount()));
+                list.add(ms);
+            }
             return list;
         }
     }
