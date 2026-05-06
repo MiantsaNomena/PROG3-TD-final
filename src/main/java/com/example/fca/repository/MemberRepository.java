@@ -215,4 +215,52 @@ public class MemberRepository {
             return list;
         }
     }
+
+    public Map<String, Double> getAssiduityByMember(String collectivityId, LocalDate from, LocalDate to) throws SQLException {
+        String sql = """
+        SELECT 
+            a.member_id,
+            ROUND(COUNT(CASE WHEN a.status = 'ATTENDED' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0), 2) AS percentage
+        FROM attendance a
+        JOIN activity act ON act.id = a.activity_id
+        WHERE act.collectivity_id = ? 
+          AND act.executive_date BETWEEN ? AND ?
+        GROUP BY a.member_id
+        """;
+        try (Connection conn = datasource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, collectivityId);
+            stmt.setDate(2, Date.valueOf(from));
+            stmt.setDate(3, Date.valueOf(to));
+            ResultSet rs = stmt.executeQuery();
+            Map<String, Double> map = new HashMap<>();
+            while (rs.next()) {
+                map.put(rs.getString("member_id"), rs.getDouble("percentage"));
+            }
+            return map;
+        }
+    }
+
+    public Map<String, Double> getOverallAssiduityByCollectivity(LocalDate from, LocalDate to) throws SQLException {
+        String sql = """
+        SELECT 
+            act.collectivity_id,
+            ROUND(SUM(CASE WHEN a.status = 'ATTENDED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 2) AS global_percentage
+        FROM attendance a
+        JOIN activity act ON act.id = a.activity_id
+        WHERE act.executive_date BETWEEN ? AND ?
+        GROUP BY act.collectivity_id
+        """;
+        try (Connection conn = datasource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setDate(1, Date.valueOf(from));
+            stmt.setDate(2, Date.valueOf(to));
+            ResultSet rs = stmt.executeQuery();
+            Map<String, Double> map = new HashMap<>();
+            while (rs.next()) {
+                map.put(rs.getString("collectivity_id"), rs.getDouble("global_percentage"));
+            }
+            return map;
+        }
+    }
 }
