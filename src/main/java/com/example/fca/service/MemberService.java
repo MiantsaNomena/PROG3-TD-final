@@ -1,13 +1,17 @@
 package com.example.fca.service;
 
-import com.example.fca.entity.Member;
 import com.example.fca.entity.dto.CreateMember;
 import com.example.fca.entity.dto.MemberResponse;
+import com.example.fca.entity.dto.ParrainRelation;
+import com.example.fca.entity.Member;
 import com.example.fca.repository.MemberRepository;
 import com.example.fca.validator.MemberValidator;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+
 
 @Service
 public class MemberService {
@@ -20,7 +24,7 @@ public class MemberService {
     }
 
     public List<MemberResponse> createMembers(List<CreateMember> dtos) throws Exception {
-        List<MemberResponse> responses = new java.util.ArrayList<>();
+        List<MemberResponse> responses = new ArrayList<>();
         for (CreateMember dto : dtos) {
             validator.validate(dto);
             Member member = new Member();
@@ -38,7 +42,11 @@ public class MemberService {
             member.setMembershipDate(LocalDate.now());
             member = memberRepository.save(member);
 
-            List<Member> referees = memberRepository.findByIds(dto.getReferees());
+            List<String> refereeIds = dto.getReferees().stream()
+                    .map(ParrainRelation::getMemberIdentifier)
+                    .collect(Collectors.toList());
+            List<Member> referees = memberRepository.findByIds(refereeIds);
+
             MemberResponse resp = new MemberResponse();
             resp.setId(member.getId());
             resp.setFirstName(member.getFirstName());
